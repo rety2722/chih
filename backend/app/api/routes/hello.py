@@ -2,24 +2,29 @@
 Заглушка для тестовых запросов
 """
 
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 from sqlmodel import Session
-from app.database.db import engine
+from app.core.db import engine
 
-from app.database.models.user import User
+from app.models import UserCreate, User, create_user, get_user_by_email
 
 router = APIRouter()
 
 
 @router.get("/")
-async def root():
+def root():
     return {"Чих": "Пых"}
 
 
 @router.post("/")
-async def create_user(user: User):
+def new_user(user_in: UserCreate) -> User:
     with Session(engine) as session:
-        session.add(user)
-        session.commit()
-        session.refresh(user)
+        user = get_user_by_email(session=session, email=user_in.email)
+        if user:
+            raise HTTPException(
+                status_code=400,
+                detail="The user with this email already exists in the system.",
+            )
+
+        user = create_user(session=session, user_create=user_in)
         return user

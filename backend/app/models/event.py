@@ -1,3 +1,5 @@
+# TODO Как хранить координаты в бд?
+
 from sqlmodel import Field, SQLModel, Relationship
 from app.database.models.user import User
 from datetime import datetime
