@@ -4,5 +4,5 @@ router = APIRouter()
 
 
 @router.get("/")
-async def helloworld():
+async def root():
     return {"Чих": "Пых"}
