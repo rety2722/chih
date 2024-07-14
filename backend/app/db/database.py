@@ -3,18 +3,20 @@ from hashlib import sha256
 
 from backend.env.constants import *
 from user import User
+from event import Event
 
 
 class Database:
     def __init__(self, database: str = 'test', host: str = 'localhost', admin: str = ADMIN,
-                 admin_pwd: str = ADMIN_PWD, connect_timeout: int = 3):
+                 admin_pwd: str = ADMIN_PWD, connect_timeout: int = 5, **kwargs):
         try:
             self.conn = psycopg2.connect(
                 database=database,
                 host=host,
                 user=admin,
                 password=admin_pwd,
-                connect_timeout=connect_timeout
+                connect_timeout=connect_timeout,
+                **kwargs
             )
         except Exception as e:
             raise e
@@ -26,6 +28,18 @@ class Database:
             id INTEGER PRIMARY KEY,
             username VARCHAR(255) UNIQUE NOT NULL,
             password VARCHAR(255) NOT NULL
+        );
+        """)
+        self.conn.commit()
+
+        self.cursor.execute("""
+        CREATE TABLE IF NOT EXISTS events_log (
+            id INTEGER PRIMARY KEY,
+            creator VARCHAR(255),
+            event_type VARCHAR(255) NOT NULL,
+            location VARCHAR(255), 
+            time TIMESTAMP,
+            subscribers INTEGER[]
         );
         """)
         self.conn.commit()
@@ -43,3 +57,36 @@ class Database:
         self.cursor.execute(f"SELECT EXISTS(SELECT TRUE FROM usr_login WHERE username='{user.name}');")
         return self.cursor.fetchall()[0][0]
 
+    def get_id_by_username(self, username: str, check_exist: bool = False):
+        if check_exist and not self.check_user_exists(User(username)):
+            return None  # можно -1
+        self.cursor.execute(f"SELECT * FROM usr_login WHERE username='{username}';")
+        return self.cursor.fetchall()[0][0]
+
+    def delete_user_by_id(self, user_id: int):
+        # TODO()
+        pass
+
+    def delete_user_by_username(self, username: str):
+        # TODO()
+        pass
+
+    def add_favourite(self, user: User, event_id: int):
+        # TODO()
+        pass
+
+    def add_event(self, event: Event):
+        self.cursor.execute(f"""
+        INSERT INTO event_log (id, creator, event_type, location, time, subscribers) VALUES 
+        ((SELECT COALESCE(MAX(id)+1, 1) FROM event_log), '{event.creator}', '{event.type}',
+        '{event.place}', TIMESTAMP '{event.time.strftime(r'%Y-%m-%d %H:%M:%S')}', {'{}'});
+        """)
+        self.conn.commit()
+
+    def add_subscriber(self, event_id: int, user: User):
+        # TODO()
+        pass
+
+    def add_admin(self, event_id: int, user: User):
+        # TODO()
+        pass
