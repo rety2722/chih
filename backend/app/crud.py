@@ -1,30 +1,7 @@
-from pydantic import EmailStr
-from sqlmodel import Field, SQLModel, Session, select
+from sqlmodel import Session, select
 
 from app.core.security import get_password_hash, verify_password
-
-
-class UserBase(SQLModel):
-    email: EmailStr = Field(unique=True, index=True, max_length=255)
-    full_name: str = Field(max_length=255)
-
-
-class UserCreate(UserBase):
-    password: str = Field(min_length=8, max_length=40)
-
-
-class User(UserBase, table=True):
-    id: int | None = Field(default=None, primary_key=True)
-    hashed_password: str
-
-
-class UserPublic(UserBase):
-    id: int
-
-
-class UsersPublic(SQLModel):
-    data: list[UserPublic]
-    count: int
+from app.models import User, UserCreate
 
 
 def create_user(*, session: Session, user_create: UserCreate) -> User:

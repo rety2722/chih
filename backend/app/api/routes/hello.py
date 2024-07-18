@@ -4,9 +4,10 @@
 
 from fastapi import APIRouter, HTTPException
 from sqlmodel import Session
-from app.core.db import engine
 
-from app.models import UserCreate, User, create_user, get_user_by_email
+from app.core.db import engine
+from app.crud import create_user, get_user_by_email
+from app.models import User, UserCreate
 
 router = APIRouter()
 
