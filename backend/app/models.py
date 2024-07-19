@@ -38,9 +38,8 @@ class UsersPublic(SQLModel):
 
 class Event(SQLModel, table=True):
     id: int = Field(default=None, primary_key=True)
+    creator_id: User = Field(default=None, foreign_key="user.id")
     creator: User = Relationship(back_populates="events")
-    # admins TODO
-    # Нужен ли тут Decimal или можно обойтись float?
     latitude: Decimal = Field(default=None, decimal_places=6)
     longitude: Decimal = Field(default=None, decimal_places=6)
     time: datetime = Field()
