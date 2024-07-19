@@ -1,9 +1,16 @@
-from sqlmodel import SQLModel, Session, create_engine
+from sqlalchemy import create_engine
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import sessionmaker
 
-from app.models import User
+SQLALCHEMY_DATABASE_URL = "sqlite:///database.db"
 
-engine = create_engine("sqlite:///database.db")  # TODO: перевести на PostgreSQL
+engine = create_engine(
+    SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False}
+)
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+Base = declarative_base()
 
 
-def init_db() -> None:
-    SQLModel.metadata.create_all(engine)  # TODO: Добавить систему миграций
+def init_db():
+    Base.metadata.create_all(bind=engine)

@@ -1,48 +1,36 @@
-from datetime import datetime
-from decimal import Decimal
+from sqlalchemy import Column, Float, ForeignKey, Integer, String
+from sqlalchemy.orm import relationship
 
-from pydantic import EmailStr
-from sqlmodel import Field, Relationship, SQLModel
-
-
-class UserEventLink(SQLModel, table=True):
-    user_id: int | None = Field(default=None, foreign_key="user.id", primary_key=True)
-    event_id: int | None = Field(default=None, foreign_key="event.id", primary_key=True)
+from app.core.db import Base
 
 
-class UserBase(SQLModel):
-    email: EmailStr = Field(unique=True, index=True, max_length=255)
-    full_name: str = Field(max_length=255)
-
-
-class UserCreate(UserBase):
-    password: str = Field(min_length=8, max_length=40)
-
-
-class User(UserBase, table=True):
-    id: int | None = Field(default=None, primary_key=True)
-    hashed_password: str
-    events: list["Event"] = Relationship(
-        back_populates="users", link_model=UserEventLink
+class User(Base):
+    __tablename__ = "users"
+    id = Column(Integer, primary_key=True)
+    email = Column(String, unique=True, index=True)
+    full_name = Column(String(255))
+    hashed_password = Column(String)
+    events = relationship("Event", back_populates="creator")
+    subscribed_events = relationship(
+        "Event", secondary="subscription", back_populates="subscribers"
     )
 
 
-class UserPublic(UserBase):
-    id: int
-
-
-class UsersPublic(SQLModel):
-    data: list[UserPublic]
-    count: int
-
-
-class Event(SQLModel, table=True):
-    id: int = Field(default=None, primary_key=True)
-    creator_id: User = Field(default=None, foreign_key="user.id")
-    creator: User = Relationship(back_populates="events")
-    latitude: Decimal = Field(default=None, decimal_places=6)
-    longitude: Decimal = Field(default=None, decimal_places=6)
-    time: datetime = Field()
-    subscribers: list["User"] = Relationship(
-        back_populates="events", link_model=UserEventLink
+class Event(Base):
+    __tablename__ = "events"
+    id = Column(Integer, primary_key=True)
+    creator_id = Column(Integer, ForeignKey("users.id"))
+    creator = relationship("User", back_populates="events")
+    latitude = Column(Float)
+    longitude = Column(Float)
+    time = Column(String)
+    subscribers = relationship(
+        "User", secondary="subscription", back_populates="subscribed_events"
     )
+
+
+class Subscription(Base):
+    __tablename__ = "subscription"
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.id"))
+    event_id = Column(Integer, ForeignKey("events.id"))
