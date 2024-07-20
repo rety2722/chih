@@ -23,15 +23,16 @@ class User(UserBase):
     class Config:
         from_attributes = True
 
+
 # update
 class UserUpdate(UserBase):
-    email: EmailStr | None 
-    password: str | None 
+    email: EmailStr | None
+    password: str | None
 
 
 class UserUpdateMe(BaseModel):
     full_name: str | None
-    email: EmailStr | None 
+    email: EmailStr | None
 
 
 class UpdatePassword(BaseModel):
@@ -47,7 +48,7 @@ class UserPublic(UserBase):
 class UsersPublic(BaseModel):
     data: list["UserPublic"]
     count: int
-    
+
 
 # event
 class EventBase(BaseModel):
@@ -80,7 +81,7 @@ class EventUpdate(EventBase):
     latitude: float | None
     longitude: float | None
     time: datetime | None
-    
+
 
 # public
 class EventPublic(EventBase):
