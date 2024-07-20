@@ -30,14 +30,16 @@ def authenticate(*, session: Session, email: str, password: str) -> models.User 
     return db_user
 
 
-def create_event(*, session: Session, event_create: schemas.EventCreate, creator_id_in : int) -> models.Event:
+def create_event(
+    *, session: Session, event_create: schemas.EventCreate, creator_id_in: int
+) -> models.Event:
     db_event = models.Event(
-        title = event_create.title,
-        description = event_create.description,
-        latitude = event_create.latitude,
-        longitude = event_create.longitude,
-        time = event_create.time, 
-        creator_id = creator_id_in
+        title=event_create.title,
+        description=event_create.description,
+        latitude=event_create.latitude,
+        longitude=event_create.longitude,
+        time=event_create.time,
+        creator_id=creator_id_in,
     )
     session.add(db_event)
     session.commit()

@@ -10,9 +10,10 @@ class User(Base):
     email = Column(String, unique=True, index=True)
     full_name = Column(String(255))
     hashed_password = Column(String)
-    
+
     created_events = relationship(
-        "Event", back_populates="creator", 
+        "Event",
+        back_populates="creator",
     )
     subscribed_events = relationship(
         "Event", secondary="subscription", back_populates="subscribers"
@@ -25,16 +26,14 @@ class User(Base):
 class Event(Base):
     __tablename__ = "events"
     id = Column(Integer, primary_key=True)
-    title = Column(String(255), default='unnamed')
-    description = Column(String(255), default='')
+    title = Column(String(255), default="unnamed")
+    description = Column(String(255), default="")
     latitude = Column(Float)
     longitude = Column(Float)
     time = Column(DateTime)
     creator_id = Column(Integer, ForeignKey("users.id"))
-    
-    creator = relationship(
-        "User", back_populates="created_events"
-    )
+
+    creator = relationship("User", back_populates="created_events")
     subscribers = relationship(
         "User", secondary="subscription", back_populates="subscribed_events"
     )
