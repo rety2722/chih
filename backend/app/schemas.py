@@ -105,6 +105,7 @@ class Message(BaseModel):
     message: str
 
 
+# token
 class Token(BaseModel):
     access_token: str
     token_type: str = "bearer"
