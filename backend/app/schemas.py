@@ -50,6 +50,9 @@ class UpdatePassword(BaseModel):
 class UserPublic(UserBase):
     id: int
 
+    class Config:
+        from_attributes = True
+
 
 class UsersPublic(BaseModel):
     data: list["UserPublic"]

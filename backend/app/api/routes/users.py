@@ -30,26 +30,22 @@ router = APIRouter()
 
 
 @router.get(
-    "/", 
+    "/",
     # TODO раскомментить как будет готов переезд на postgres:
     # dependencies=[Depends(get_current_active_superuser)]
-    response_model=UserPublic
+    response_model=UsersPublic,
 )
 def read_users(*, session: SessionDep, skip: int = 0, limit: int = 100) -> Any:
-    count_statements = select(func.count()).select_from(User)
-    count = session.execute(count_statements.one())
-    
-    statement = select(User).offset(skip).limit(limit)
-    users = session.execute(statement).all()
-    
-    return UsersPublic(data=users, count=count)
+    users = session.query(User).offset(skip).limit(limit).all()
+    total_count = len(users)
+    return UsersPublic(data=users, count=total_count)
 
 
 @router.post(
-    "/", 
+    "/",
     # TODO раскомментить как будет готов переезд на postgres:
-    # dependencies=[Depends(get_current_active_superuser)], 
-    response_model=UserPublic
+    # dependencies=[Depends(get_current_active_superuser)],
+    response_model=UserPublic,
 )
 def create_user(*, session: SessionDep, user_in: UserCreate) -> Any:
     user = crud.get_user_by_email(session=session, email=user_in.email)
