@@ -41,16 +41,15 @@ class Event(Base):
     admins = relationship(
         "User", secondary="administration", back_populates="administrated_events"
     )
-    
-    
-class Subscription(Base):
-    __tablename__ = "subscription"
-    id = Column(Integer, primary_key=True)
-    user_id = Column(Integer, ForeignKey("users.id"), primary_key=True)
-    event_id = Column(Integer, ForeignKey("events.id"), primary_key=True)
 
-class Administration(Base):
-    __tablename__ = "administration"
+class Mode:
     id = Column(Integer, primary_key=True)
     user_id = Column(Integer, ForeignKey("users.id"), primary_key=True)
     event_id = Column(Integer, ForeignKey("events.id"), primary_key=True)
+    
+    
+class Subscription(Mode, Base):
+    __tablename__ = "subscription"
+
+class Administration(Mode, Base):
+    __tablename__ = "administration"

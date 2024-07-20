@@ -11,6 +11,12 @@ class UserBase(BaseModel):
 
 class UserCreate(UserBase):
     password: str
+    
+
+class UserRegister(BaseModel):
+    email: EmailStr
+    password: str
+    full_name: str | None
 
 
 class User(UserBase):
@@ -91,3 +97,8 @@ class EventPublic(EventBase):
 class EventsPublic(BaseModel):
     data: list["EventPublic"]
     count: int
+
+
+# message
+class Message(BaseModel):
+    message: str
