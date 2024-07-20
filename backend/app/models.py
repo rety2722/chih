@@ -33,7 +33,7 @@ class Event(Base):
     creator_id = Column(Integer, ForeignKey("users.id"))
     
     creator = relationship(
-        "User", back_populates="events"
+        "User", back_populates="created_events"
     )
     subscribers = relationship(
         "User", secondary="subscription", back_populates="subscribed_events"
