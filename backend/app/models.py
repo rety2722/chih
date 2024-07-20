@@ -41,14 +41,16 @@ class Event(Base):
         "User", secondary="administration", back_populates="administrated_events"
     )
 
+
 class Mode:
     id = Column(Integer, primary_key=True)
     user_id = Column(Integer, ForeignKey("users.id"), primary_key=True)
     event_id = Column(Integer, ForeignKey("events.id"), primary_key=True)
-    
-    
+
+
 class Subscription(Mode, Base):
     __tablename__ = "subscription"
+
 
 class Administration(Mode, Base):
     __tablename__ = "administration"

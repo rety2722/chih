@@ -40,10 +40,10 @@ def get_current_user(session: SessionDep, token: TokenDep):
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Could not validate credentials",
         )
-    user = models.User.query.get(token_data.sub)
+    user = session.query(models.User).get(token_data.sub)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
-    return user
+    return schemas.User.model_validate(user)
 
 
 CurrentUser = Annotated[schemas.User, Depends(get_current_user)]
