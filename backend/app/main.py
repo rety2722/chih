@@ -6,4 +6,4 @@ from app.core.config import settings
 
 app = FastAPI(title=settings.PROJECT_NAME)
 app.add_event_handler("startup", lambda: init_db())
-app.include_router(api_router)
+app.include_router(api_router, prefix=settings.API_V1_STR)
