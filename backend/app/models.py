@@ -44,6 +44,7 @@ class Event(Base):
 
 
 class Mode(Base):
+    __tablename__ = "mode"
     id = Column(Integer, primary_key=True)
     user_id = Column(Integer, ForeignKey("users.id"), primary_key=True)
     event_id = Column(Integer, ForeignKey("events.id"), primary_key=True)
