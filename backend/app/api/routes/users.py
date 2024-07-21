@@ -13,7 +13,6 @@ from app.core.config import settings
 from app.core.security import get_password_hash, verify_password
 from app.models import Event, User
 from app.schemas import (
-    Event,
     UpdatePassword,
     UserCreate,
     UserPublic,
@@ -85,7 +84,6 @@ def update_user_me(
 
     session.add(db_user)
     session.commit()
-    session.refresh(db_user)
     return current_user
 
 
@@ -101,7 +99,10 @@ def update_password_me(
         )
     hashed_password = get_password_hash(body.new_password)
     current_user.hashed_password = hashed_password
-    session.add(current_user)
+
+    session.query(User).filter(User.id == current_user.id).update(
+        {"hashed_password": hashed_password}
+    )
     session.commit()
     return Message(message="Password updated successfully")
 
@@ -119,7 +120,7 @@ def delete_user_me(session: SessionDep, current_user: CurrentUser) -> Any:
         )
 
     session.query(Event).filter(Event.creator_id == current_user.id).delete()
-    session.delete(current_user)
+    session.query(User).filter(User.id == current_user.id).delete()
     session.commit()
     return Message(message="User deleted successfully")
 
@@ -146,7 +147,7 @@ def register_user(session: SessionDep, user_in: UserRegister) -> Any:
 def read_user_by_id(
     user_id: int, session: SessionDep, current_user: CurrentUser
 ) -> Any:
-    user = session.get(User, user_id)
+    user = crud.get_user_by_id(session=session, user_id=user_id)
     if user == current_user:
         return user
     if not current_user.is_superuser:
@@ -169,8 +170,8 @@ def update_user(
     user_id: int,
     user_in: UserUpdate,
 ) -> Any:
-    db_user = session.get(User, user_id)
-    if not db_user:
+    user = crud.get_user_by_id(session=session, user_id=user_id)
+    if not user:
         raise HTTPException(
             status_code=404,
             detail="User with this id does not exist in the system",
@@ -182,8 +183,8 @@ def update_user(
                 status_code=409, detail="User with this email already exists"
             )
 
-    db_user = crud.update_user(session=session, db_user=db_user, user_in=user_in)
-    return db_user
+    user = crud.update_user(session=session, user=user, user_in=user_in)
+    return user
 
 
 @router.delete(
@@ -194,7 +195,7 @@ def update_user(
 def delete_user(
     session: SessionDep, current_user: CurrentUser, user_id: int
 ) -> Message:
-    user = session.get(User, user_id)
+    user = crud.get_user_by_id(session=session, user_id=user_id)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     if user == current_user:
@@ -202,6 +203,6 @@ def delete_user(
             status_code=403, detail="Super users are not allowed to delete themselves"
         )
     session.query(Event).filter(Event.creator_id == user_id).delete()
-    session.delete(user)
+    session.query(User).filter(User.id == user_id).delete()
     session.commit()
     return Message(message="User deleted successfully")

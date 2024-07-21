@@ -4,59 +4,59 @@ from app.core.security import get_password_hash, verify_password
 from . import models, schemas
 
 
-def create_user(*, session: Session, user_create: schemas.UserCreate) -> models.User:
-    hashed_password = get_password_hash(user_create.password)
-    db_user = models.User(
-        email=user_create.email,
-        full_name=user_create.full_name,
-        hashed_password=hashed_password,
-    )
+def create_user(*, session: Session, user_create: schemas.UserCreate) -> schemas.User:
+    user_data = user_create.model_dump(exclude="password")
+    user_data["hashed_password"] = get_password_hash(user_create.password)
+    db_user = models.User(**user_data)
     session.add(db_user)
     session.commit()
-    session.refresh(db_user)
-    return db_user
+
+    return schemas.User.model_validate(db_user)
 
 
-def update_user(*, session: Session, db_user: models.User, user_in: schemas.UserUpdate) -> models.User | None:
+def update_user(
+    *, session: Session, user: schemas.User, user_in: schemas.UserUpdate
+) -> schemas.User | None:
     user_data = user_in.model_dump(exclude_unset=True)
     extra_data = {}
     if "password" in user_data:
-        password = user_data["password"]
-        hashed_password = get_password_hash(password)
+        hashed_password = get_password_hash(user_data["password"])
         extra_data["hashed_password"] = hashed_password
         user_data.pop("password")
-    session.query(models.User).filter(models.User.id == db_user.id).update(values=user_data, update_args=extra_data)
-    session.add(db_user)
+
+    update_data = user_data | extra_data
+    user.model_dump().update(update_data)
+
+    session.query(models.User).filter(models.User.id == user.id).update(update_data)
     session.commit()
-    session.refresh(db_user)
-    return db_user
+    return user
 
 
-def get_user_by_email(*, session: Session, email: str) -> models.User | None:
-    return session.query(models.User).filter(models.User.email == email).first()
+def get_user_by_email(*, session: Session, email: str) -> schemas.User | None:
+    db_user = session.query(models.User).filter(models.User.email == email).first()
+    return schemas.User.model_validate(db_user) if db_user else None
 
 
-def authenticate(*, session: Session, email: str, password: str) -> models.User | None:
-    db_user = get_user_by_email(session=session, email=email)
-    if not db_user:
+def get_user_by_id(*, session: Session, user_id: int) -> schemas.User | None:
+    db_user = session.query(models.User).filter(models.User.id == user_id).first()
+    return schemas.User.model_validate(db_user) if db_user else None
+
+
+def authenticate(*, session: Session, email: str, password: str) -> schemas.User | None:
+    user = get_user_by_email(session=session, email=email)
+    if not user:
         return None
-    if not verify_password(password, db_user.hashed_password):
+    if not verify_password(password, user.hashed_password):
         return None
-    return db_user
+    return user
 
 
 def create_event(
     *, session: Session, event_create: schemas.EventCreate, creator: schemas.User
-) -> models.Event:
-    db_event = models.Event(
-        title=event_create.title,
-        description=event_create.description,
-        latitude=event_create.latitude,
-        longitude=event_create.longitude,
-        time=event_create.time,
-        creator_id=creator.id,
-    )
+) -> schemas.Event:
+    event_data = event_create.model_dump()
+
+    db_event = models.Event(**event_data)
     session.add(db_event)
     session.commit()
-    session.refresh(db_event)
-    return db_event
+    return schemas.Event.model_validate(db_event)
