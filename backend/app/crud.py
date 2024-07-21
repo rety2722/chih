@@ -31,7 +31,7 @@ def authenticate(*, session: Session, email: str, password: str) -> models.User 
 
 
 def create_event(
-    *, session: Session, event_create: schemas.EventCreate, creator_id_in: int
+    *, session: Session, event_create: schemas.EventCreate, creator: schemas.User
 ) -> models.Event:
     db_event = models.Event(
         title=event_create.title,
@@ -39,7 +39,7 @@ def create_event(
         latitude=event_create.latitude,
         longitude=event_create.longitude,
         time=event_create.time,
-        creator_id=creator_id_in,
+        creator_id=creator.id,
     )
     session.add(db_event)
     session.commit()
