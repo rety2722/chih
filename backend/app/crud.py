@@ -17,6 +17,21 @@ def create_user(*, session: Session, user_create: schemas.UserCreate) -> models.
     return db_user
 
 
+def update_user(*, session: Session, db_user: models.User, user_in: schemas.UserUpdate) -> models.User | None:
+    user_data = user_in.model_dump(exclude_unset=True)
+    extra_data = {}
+    if "password" in user_data:
+        password = user_data["password"]
+        hashed_password = get_password_hash(password)
+        extra_data["hashed_password"] = hashed_password
+        user_data.pop("password")
+    session.query(models.User).filter(models.User.id == db_user.id).update(values=user_data, update_args=extra_data)
+    session.add(db_user)
+    session.commit()
+    session.refresh(db_user)
+    return db_user
+
+
 def get_user_by_email(*, session: Session, email: str) -> models.User | None:
     return session.query(models.User).filter(models.User.email == email).first()
 
