@@ -6,24 +6,20 @@ from app import crud
 from app.api.deps import (
     CurrentUser,
     SessionDep,
-    # TODO раскомментить как будет готов переезд на postgres:
-    # get_current_active_superuser
 )
+
+# TODO раскомментить как будет готов переезд на postgres:
+# get_current_active_superuser
 from app.core.config import settings
-from app.core.security import get_password_hash, verify_password
 from app.models import Event, User
 from app.schemas import (
-    UpdatePassword,
+    Message,
     UserCreate,
     UserPublic,
-    UserRegister,
     UsersPublic,
     UserUpdate,
-    UserUpdateMe,
-    Message,
 )
 from app.utils import generate_new_account_email, send_email
-
 
 router = APIRouter()
 
@@ -66,50 +62,6 @@ def create_user(*, session: SessionDep, user_in: UserCreate) -> Any:
             html_content=email_data.html_content,
         )
     return user
-
-
-@router.patch("/me", response_model=UserPublic)
-def update_user_me(
-    *, session: SessionDep, user_in: UserUpdateMe, current_user: CurrentUser
-) -> Any:
-    if user_in.email:
-        existing_user = crud.get_user_by_email(session=session, email=user_in.email)
-        if existing_user and existing_user.id != current_user.id:
-            raise HTTPException(
-                status_code=409, detail="User with this email already exists"
-            )
-    user_data = user_in.model_dump(exclude_unset=True)
-    session.query(User).filter(User.id == current_user.id).update(user_data)
-    db_user = session.query(User).filter(User.id == current_user.id).first()
-
-    session.add(db_user)
-    session.commit()
-    return current_user
-
-
-@router.patch("/me/password", response_model=Message)
-def update_password_me(
-    *, session: SessionDep, body: UpdatePassword, current_user: CurrentUser
-) -> Any:
-    if not verify_password(body.current_password, current_user.hashed_password):
-        raise HTTPException(status_code=400, detail="Incorrect password")
-    if body.current_password == body.new_password:
-        raise HTTPException(
-            status_code=400, detail="New password cannot be the same as the current one"
-        )
-    hashed_password = get_password_hash(body.new_password)
-    current_user.hashed_password = hashed_password
-
-    session.query(User).filter(User.id == current_user.id).update(
-        {"hashed_password": hashed_password}
-    )
-    session.commit()
-    return Message(message="Password updated successfully")
-
-
-@router.get("/me", response_model=UserPublic)
-def read_user_me(current_user: CurrentUser) -> Any:
-    return current_user
 
 
 @router.delete("/me", response_model=Message)
