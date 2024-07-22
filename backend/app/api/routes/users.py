@@ -1,6 +1,6 @@
 from typing import Any
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, status
 
 from app import crud
 from app.api.deps import (
@@ -114,10 +114,11 @@ def read_user_me(current_user: CurrentUser) -> Any:
 
 @router.delete("/me", response_model=Message)
 def delete_user_me(session: SessionDep, current_user: CurrentUser) -> Any:
-    if current_user.is_superuser:
-        raise HTTPException(
-            status_code=403, detail="Super users are not allowed to delete themselves"
-        )
+    # TODO: Раскомментить как суперюзеров добавим
+    # if current_user.is_superuser:
+    #     raise HTTPException(
+    #         status_code=403, detail="Super users are not allowed to delete themselves"
+    #     )
 
     session.query(Event).filter(Event.creator_id == current_user.id).delete()
     session.query(User).filter(User.id == current_user.id).delete()
@@ -125,35 +126,12 @@ def delete_user_me(session: SessionDep, current_user: CurrentUser) -> Any:
     return Message(message="User deleted successfully")
 
 
-@router.post("/signup", response_model=UserPublic)
-def register_user(session: SessionDep, user_in: UserRegister) -> Any:
-    if not settings.USERS_OPEN_REGISTRATION:
-        raise HTTPException(
-            status_code=403,
-            detail="Open user registration is forbidden on this server",
-        )
-    user = crud.get_user_by_email(session=session, email=user_in.email)
-    if user:
-        raise HTTPException(
-            status_code=400,
-            detail="The user with this email already exists in the system",
-        )
-    user_create = UserCreate.model_validate(user_in.model_dump(exclude_unset=True))
-    user = crud.create_user(session=session, user_create=user_create)
-    return user
-
-
 @router.get("/{user_id}", response_model=UserPublic)
-def read_user_by_id(
-    user_id: int, session: SessionDep, current_user: CurrentUser
-) -> Any:
+def read_user_by_id(user_id: int, session: SessionDep) -> Any:
     user = crud.get_user_by_id(session=session, user_id=user_id)
-    if user == current_user:
-        return user
-    if not current_user.is_superuser:
+    if not user:
         raise HTTPException(
-            status_code=403,
-            detail="The user doesn't have enough privileges",
+            status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
         )
     return user
 
