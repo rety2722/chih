@@ -64,20 +64,6 @@ def create_user(*, session: SessionDep, user_in: UserCreate) -> Any:
     return user
 
 
-@router.delete("/me", response_model=Message)
-def delete_user_me(session: SessionDep, current_user: CurrentUser) -> Any:
-    # TODO: Раскомментить как суперюзеров добавим
-    # if current_user.is_superuser:
-    #     raise HTTPException(
-    #         status_code=403, detail="Super users are not allowed to delete themselves"
-    #     )
-
-    session.query(Event).filter(Event.creator_id == current_user.id).delete()
-    session.query(User).filter(User.id == current_user.id).delete()
-    session.commit()
-    return Message(message="User deleted successfully")
-
-
 @router.get("/{user_id}", response_model=UserPublic)
 def read_user_by_id(user_id: int, session: SessionDep) -> Any:
     user = crud.get_user_by_id(session=session, user_id=user_id)

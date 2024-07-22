@@ -58,3 +58,13 @@ def update_password_me(
     )
     session.commit()
     return schemas.Message(message="Password updated successfully")
+
+
+@router.delete("/delete", response_model=schemas.Message)
+def delete_user_me(session: SessionDep, current_user: CurrentUser) -> Any:
+    session.query(models.Event).filter(
+        models.Event.creator_id == current_user.id
+    ).delete()
+    session.query(models.User).filter(models.User.id == current_user.id).delete()
+    session.commit()
+    return schemas.Message(message="User deleted successfully")
