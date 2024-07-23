@@ -12,13 +12,27 @@ following = Table(
 )
 
 
+class Mode:
+    user_id = Column(Integer, ForeignKey("users.id"), primary_key=True)
+    event_id = Column(Integer, ForeignKey("events.id"), primary_key=True)
+
+
+class Subscription(Mode, Base):
+    __tablename__ = "subscription"
+
+
+class Administration(Mode, Base):
+    __tablename__ = "administration"
+
+
+
 class User(Base):
     __tablename__ = "users"
     id = Column(Integer, primary_key=True)
     email = Column(String, unique=True, index=True)
     full_name = Column(String(255))
     hashed_password = Column(String)
-    
+
     active = Column(Integer)
     superuser = Column(Integer)
 
@@ -71,17 +85,3 @@ class Event(Base):
         back_populates="administrated_events",
         uselist=True,
     )
-
-
-class Mode:
-    id = Column(Integer, primary_key=True)
-    user_id = Column(Integer, ForeignKey("users.id"), primary_key=True)
-    event_id = Column(Integer, ForeignKey("events.id"), primary_key=True)
-
-
-class Subscription(Mode, Base):
-    __tablename__ = "subscription"
-
-
-class Administration(Mode, Base):
-    __tablename__ = "administration"

@@ -45,6 +45,7 @@ def get_current_user(session: SessionDep, token: TokenDep) -> schemas.User:
         raise HTTPException(status_code=404, detail="User not found")
     return schemas.User.model_validate(user)
 
+
 CurrentUser = Annotated[schemas.User, Depends(get_current_user)]
 
 

@@ -35,11 +35,11 @@ def follow(*, session: SessionDep, current_user: CurrentUser, user_id: int):
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
         )
-    
-    if db_user in db_me.follows: 
+
+    if db_user in db_me.follows:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT, detail="Already subscribed"
-        )  
+        )
     db_me.follows.append(db_user)
     session.commit()
     return Message(message="Subscribed Successfully")
@@ -53,7 +53,7 @@ def unfollow(*, session: SessionDep, current_user: CurrentUser, user_id: int):
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
         )
-    
+
     if db_user not in db_me.follows:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Not subscribed"

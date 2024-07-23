@@ -23,9 +23,9 @@ class User(UserBase):
     id: int
     email: EmailStr
     hashed_password: str
-    
+
     active: int = True
-    superuser: int = False # TODO можно вынести в отдельную табличку users/privileges
+    superuser: int = False  # TODO можно вынести в отдельную табличку users/privileges
 
     followers: list["UserPublic"] = []
     follows: list["UserPublic"] = []

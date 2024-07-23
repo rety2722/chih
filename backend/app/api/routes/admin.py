@@ -1,24 +1,17 @@
 from fastapi import APIRouter, HTTPException, Depends
 
 from app import crud
-from app.api.deps import (
-    CurrentUser,
-    SessionDep,
-    get_current_active_superuser
-)
+from app.api.deps import CurrentUser, SessionDep, get_current_active_superuser
 from app.models import Event, User
-from app.schemas import (
-    Message
-)
+from app.schemas import Message
 
 router = APIRouter()
-
 
 
 @router.delete(
     "/users/{user_id}",
     dependencies=[Depends(get_current_active_superuser)],
-    response_model=Message
+    response_model=Message,
 )
 def delete_user(
     session: SessionDep, current_user: CurrentUser, user_id: int
