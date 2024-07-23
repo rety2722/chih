@@ -8,6 +8,7 @@ from app import crud, schemas
 from app.api.deps import CurrentUser, SessionDep
 from app.core import security
 from app.core.config import settings
+from app.utils import generate_new_account_email, send_email
 
 router = APIRouter()
 
@@ -28,11 +29,20 @@ def register_user(session: SessionDep, user_in: schemas.UserRegister) -> Any:
     user_create = schemas.UserCreate.model_validate(
         user_in.model_dump(exclude_unset=True)
     )
+    if settings.emails_enabled and user_in.email:
+        email_data = generate_new_account_email(
+            email_to=user_in.email, username=user_in.email, password=user_in.password
+        )
+        send_email(
+            email_to=user_in.email,
+            subject=email_data.subject,
+            html_content=email_data.html_content,
+        )
     user = crud.create_user(session=session, user_create=user_create)
     return user
 
 
-@router.post("/signin")
+@router.post("/signin", response_model=schemas.Token)
 def login_access_token(
     session: SessionDep, form_data: Annotated[OAuth2PasswordRequestForm, Depends()]
 ) -> schemas.Token:

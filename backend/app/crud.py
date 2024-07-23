@@ -55,8 +55,12 @@ def create_event(
     *, session: Session, event_create: schemas.EventCreate, creator: schemas.User
 ) -> schemas.Event:
     event_data = event_create.model_dump()
+    db_creator = session.query(models.User).filter(models.User.id == creator.id).one()
 
     db_event = models.Event(**event_data)
+    db_event.creator = db_creator
+
     session.add(db_event)
     session.commit()
+    session.refresh(db_event)
     return schemas.Event.model_validate(db_event)

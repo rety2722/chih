@@ -1,7 +1,15 @@
-from sqlalchemy import Column, Float, ForeignKey, Integer, String, DateTime
+from __future__ import annotations
+from sqlalchemy import Column, Float, ForeignKey, Integer, String, DateTime, Table
 from sqlalchemy.orm import relationship
-
 from app.core.db import Base
+
+
+following = Table(
+    "following",
+    Base.metadata,
+    Column("follower_id", Integer, ForeignKey("users.id"), primary_key=True),
+    Column("follows_id", Integer, ForeignKey("users.id"), primary_key=True),
+)
 
 
 class User(Base):
@@ -10,16 +18,33 @@ class User(Base):
     email = Column(String, unique=True, index=True)
     full_name = Column(String(255))
     hashed_password = Column(String)
+    
+    active = Column(Integer)
+    superuser = Column(Integer)
 
-    created_events = relationship(
-        "Event",
-        back_populates="creator",
+    followers = relationship(
+        "User",
+        secondary=following,
+        primaryjoin=id == following.c.follows_id,
+        secondaryjoin=id == following.c.follower_id,
+        back_populates="follows",
+        uselist=True,
     )
+    follows = relationship(
+        "User",
+        secondary=following,
+        primaryjoin=id == following.c.follower_id,
+        secondaryjoin=id == following.c.follows_id,
+        back_populates="followers",
+        uselist=True,
+    )
+
+    created_events = relationship("Event", back_populates="creator", uselist=True)
     subscribed_events = relationship(
-        "Event", secondary="subscription", back_populates="subscribers"
+        "Event", secondary="subscription", back_populates="subscribers", uselist=True
     )
     administrated_events = relationship(
-        "Event", secondary="administration", back_populates="admins"
+        "Event", secondary="administration", back_populates="admins", uselist=True
     )
 
 
@@ -31,14 +56,20 @@ class Event(Base):
     latitude = Column(Float)
     longitude = Column(Float)
     time = Column(DateTime)
-    creator_id = Column(Integer, ForeignKey("users.id"))
+    creator_id = Column(Integer, ForeignKey("users.id"), nullable=False)
 
     creator = relationship("User", back_populates="created_events")
     subscribers = relationship(
-        "User", secondary="subscription", back_populates="subscribed_events"
+        "User",
+        secondary="subscription",
+        back_populates="subscribed_events",
+        uselist=True,
     )
     admins = relationship(
-        "User", secondary="administration", back_populates="administrated_events"
+        "User",
+        secondary="administration",
+        back_populates="administrated_events",
+        uselist=True,
     )
 
 

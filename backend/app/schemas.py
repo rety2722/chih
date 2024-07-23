@@ -5,11 +5,11 @@ from datetime import datetime
 
 # user
 class UserBase(BaseModel):
-    email: EmailStr
     full_name: str
 
 
 class UserCreate(UserBase):
+    email: EmailStr
     password: str
 
 
@@ -21,10 +21,18 @@ class UserRegister(BaseModel):
 
 class User(UserBase):
     id: int
+    email: EmailStr
     hashed_password: str
-    created_events: list["Event"] = []
-    subscribed_events: list["Event"] = []
-    administrated_events: list["Event"] = []
+    
+    active: int = True
+    superuser: int = False # TODO можно вынести в отдельную табличку users/privileges
+
+    followers: list["UserPublic"] = []
+    follows: list["UserPublic"] = []
+
+    created_events: list["EventPublic"] = []
+    subscribed_events: list["EventPublic"] = []
+    administrated_events: list["EventPublic"] = []
 
     class Config:
         from_attributes = True
@@ -75,9 +83,9 @@ class EventCreate(EventBase):
 class Event(EventBase):
     id: int
     creator_id: int
-    creator: User
-    subscribers: list["User"] = []
-    admins: list["User"] = []
+    creator: UserPublic
+    subscribers: list["UserPublic"] = []
+    admins: list["UserPublic"] = []
 
     class Config:
         from_attributes = True

@@ -10,7 +10,7 @@ router = APIRouter()
 
 
 @router.get("/", response_model=schemas.UserPublic)
-def read_user_me(current_user: CurrentUser) -> Any:
+def read_user_me(*, current_user: CurrentUser) -> Any:
     return current_user
 
 
@@ -58,6 +58,18 @@ def update_password_me(
     )
     session.commit()
     return schemas.Message(message="Password updated successfully")
+
+
+@router.get("/subscriptions", response_model=schemas.UsersPublic)
+def read_subscriptions_me(*, current_user: CurrentUser):
+    data = current_user.follows
+    return {"data": data, "count": len(data)}
+
+
+@router.get("/subscribers", response_model=schemas.UsersPublic)
+def read_subscribers_me(*, current_user: CurrentUser):
+    data = current_user.followers
+    return {"data": data, "count": len(data)}
 
 
 @router.delete("/delete", response_model=schemas.Message)
