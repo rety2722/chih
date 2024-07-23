@@ -17,13 +17,13 @@ router = APIRouter()
 def register_user(session: SessionDep, user_in: schemas.UserRegister) -> Any:
     if not settings.USERS_OPEN_REGISTRATION:
         raise HTTPException(
-            status_code=status.HTTP_403,
+            status_code=status.HTTP_403_FORBIDDEN,
             detail="Open user registration is forbidden on this server",
         )
     user = crud.get_user_by_email(session=session, email=user_in.email)
     if user:
         raise HTTPException(
-            status_code=400,
+            status_code=status.HTTP_400_BAD_REQUEST,
             detail="The user with this email already exists in the system",
         )
     user_create = schemas.UserCreate.model_validate(

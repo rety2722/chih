@@ -1,6 +1,6 @@
-from pydantic import BaseModel, EmailStr
-
 from datetime import datetime
+
+from pydantic import BaseModel, EmailStr
 
 
 # user
@@ -24,8 +24,8 @@ class User(UserBase):
     email: EmailStr
     hashed_password: str
 
-    active: int = True
-    superuser: int = False  # TODO можно вынести в отдельную табличку users/privileges
+    active: bool = True
+    superuser: bool = False  # TODO можно вынести в отдельную табличку users/privileges
 
     followers: list["UserPublic"] = []
     follows: list["UserPublic"] = []
@@ -57,6 +57,9 @@ class UpdatePassword(BaseModel):
 # public
 class UserPublic(UserBase):
     id: int
+    # TODO: Предлагаю добавить сюда больше полей
+    # followers/follows
+    # events
 
     class Config:
         from_attributes = True

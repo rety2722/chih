@@ -7,6 +7,9 @@ from . import models, schemas
 def create_user(*, session: Session, user_create: schemas.UserCreate) -> schemas.User:
     user_data = user_create.model_dump(exclude="password")
     user_data["hashed_password"] = get_password_hash(user_create.password)
+    user_data["active"] = False
+    # TODO: нужно добавить возможность создавать суперюзеров
+    user_data["superuser"] = False
     db_user = models.User(**user_data)
     session.add(db_user)
     session.commit()

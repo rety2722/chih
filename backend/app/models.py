@@ -1,5 +1,14 @@
 from __future__ import annotations
-from sqlalchemy import Column, Float, ForeignKey, Integer, String, DateTime, Table
+from sqlalchemy import (
+    Column,
+    Float,
+    ForeignKey,
+    Integer,
+    String,
+    DateTime,
+    Table,
+    Boolean,
+)
 from sqlalchemy.orm import relationship
 from app.core.db import Base
 
@@ -25,7 +34,6 @@ class Administration(Mode, Base):
     __tablename__ = "administration"
 
 
-
 class User(Base):
     __tablename__ = "users"
     id = Column(Integer, primary_key=True)
@@ -33,8 +41,8 @@ class User(Base):
     full_name = Column(String(255))
     hashed_password = Column(String)
 
-    active = Column(Integer)
-    superuser = Column(Integer)
+    active = Column(Boolean)
+    superuser = Column(Boolean)
 
     followers = relationship(
         "User",
