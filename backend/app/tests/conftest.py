@@ -14,11 +14,10 @@ from app.main import app
 def db() -> Generator[Session, None, None]:
     db = SessionLocal()
     try:
-        # TODO: Сейчас перед запуском тестов все просто нахуй удаляется из БД
+        yield db
         db.execute(delete(models.User))
         db.execute(delete(models.Event))
         db.commit()
-        yield db
     finally:
         db.close()
 
