@@ -57,9 +57,3 @@ def login_access_token(
             user.id, expires_delta=access_token_expires
         )
     )
-
-
-@router.post("/test-token", response_model=schemas.UserPublic)
-def test_token(current_user: CurrentUser) -> Any:
-    # TODO: удалить функцию потом
-    return current_user
