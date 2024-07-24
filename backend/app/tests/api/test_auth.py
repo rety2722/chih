@@ -7,7 +7,7 @@ def test_signup(client: TestClient) -> None:
     responce = client.post(
         f"{settings.API_V1_STR}/auth/signup",
         json={
-            "email": "john@example.com",
+            "email": "john@auth.com",
             "password": "123456",
             "full_name": "John John",
         },
@@ -19,7 +19,7 @@ def test_signup_existing(client: TestClient) -> None:
     responce = client.post(
         f"{settings.API_V1_STR}/auth/signup",
         json={
-            "email": "john@example.com",
+            "email": "john@auth.com",
             "password": "123456",
             "full_name": "John John",
         },
@@ -31,7 +31,7 @@ def test_signin(client: TestClient) -> None:
     r = client.post(
         f"{settings.API_V1_STR}/auth/signin",
         data={
-            "username": "john@example.com",
+            "username": "john@auth.com",
             "password": "123456",
         },
     )
@@ -44,6 +44,6 @@ def test_signin(client: TestClient) -> None:
 def test_signin_incorrect(client: TestClient) -> None:
     r = client.post(
         f"{settings.API_V1_STR}/auth/signin",
-        data={"username": "incorrect@username.com", "password": "eblanchik"},
+        data={"username": "incorrect@auth.com", "password": "eblanchik"},
     )
     assert r.status_code == 400
