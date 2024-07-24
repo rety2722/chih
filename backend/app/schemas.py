@@ -38,7 +38,7 @@ class User(UserBase):
         from_attributes = True
 
     @field_validator(
-        "created_events", "subscribed_events", "administrated_events", mode="plain"
+        "created_events", "subscribed_events", "administrated_events", mode="before"
     )
     def validate(cls, events_relationship, **kwargs):
         return [
