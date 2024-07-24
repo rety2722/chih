@@ -80,7 +80,7 @@ class Event(Base):
     time = Column(DateTime)
     creator_id = Column(Integer, ForeignKey("users.id"), nullable=False)
 
-    creator = relationship("User", back_populates="created_events")
+    creator = relationship("User", back_populates="created_events", single_parent=True)
     subscribers = relationship(
         "User",
         secondary="subscription",

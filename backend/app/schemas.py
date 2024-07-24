@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, field_validator
 
 
 # user
@@ -36,6 +36,14 @@ class User(UserBase):
 
     class Config:
         from_attributes = True
+
+    @field_validator(
+        "created_events", "subscribed_events", "administrated_events", mode="plain"
+    )
+    def validate(cls, events_relationship, **kwargs):
+        return [
+            EventPublic.model_validate(event.__dict__) for event in events_relationship
+        ]
 
 
 # update
@@ -107,6 +115,8 @@ class EventUpdate(EventBase):
 class EventPublic(EventBase):
     id: int
     creator_id: int
+    # TODO тогда creator и subscribers здесб тоже
+    # надо бы добавить
 
 
 class EventsPublic(BaseModel):

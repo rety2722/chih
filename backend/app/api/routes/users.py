@@ -29,8 +29,8 @@ def read_user_by_id(user_id: int, session: SessionDep) -> Any:
 
 @router.post("/{user_id}/subscribe", response_model=Message)
 def follow(*, session: SessionDep, current_user: CurrentUser, user_id: int):
-    db_me = session.query(User).filter(User.id == current_user.id).first()
-    db_user = session.query(User).filter(User.id == user_id).first()
+    db_me = session.query(User).get(current_user.id)
+    db_user = session.query(User).get(user_id)
     if not (db_me and db_user):
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
@@ -47,8 +47,8 @@ def follow(*, session: SessionDep, current_user: CurrentUser, user_id: int):
 
 @router.post("/{user_id}/unsubscribe", response_model=Message)
 def unfollow(*, session: SessionDep, current_user: CurrentUser, user_id: int):
-    db_me = session.query(User).filter(User.id == current_user.id).first()
-    db_user = session.query(User).filter(User.id == user_id).first()
+    db_me = session.query(User).get(current_user.id)
+    db_user = session.query(User).get(user_id)
     if not (db_me and db_user):
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
