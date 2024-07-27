@@ -61,7 +61,8 @@ def create_event(
     db_creator = session.query(models.User).filter(models.User.id == creator.id).first()
 
     db_event = models.Event(**event_data)
-    # db_creator.created_events.append(db_event)
+    db_creator.created_events.append(db_event)
+    db_creator.subscribed_events.append(db_event)
     db_event.creator = db_creator
 
     session.add(db_event)

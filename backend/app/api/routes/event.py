@@ -53,7 +53,7 @@ def subscribe_event(*, session: SessionDep, current_user: CurrentUser, event_id:
 @router.post("/{event_id}/unsubscribe", response_model=schemas.Message)
 def unsubscribe_event(*, session: SessionDep, current_user: CurrentUser, event_id: int):
     db_event = session.query(models.Event).get(event_id)
-    db_me = session.query(models.User).get(current_user.id)
+    db_me: models.User = session.query(models.User).get(current_user.id)
     if not db_event:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Event not found"
@@ -65,6 +65,11 @@ def unsubscribe_event(*, session: SessionDep, current_user: CurrentUser, event_i
     if db_event not in db_me.subscribed_events:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Not subscribed"
+        )
+    if db_event.creator_id == db_me.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not allowed to unsubscribe from created event",
         )
     db_me.subscribed_events.remove(db_event)
     session.commit()
