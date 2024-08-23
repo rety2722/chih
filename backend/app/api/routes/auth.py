@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 
 from app import crud, schemas
-from app.api.deps import CurrentUser, SessionDep
+from app.api.deps import SessionDep
 from app.core import security
 from app.core.config import settings
 from app.utils import generate_new_account_email, send_email

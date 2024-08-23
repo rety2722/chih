@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'signin.dart';
+
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
 
@@ -8,11 +10,22 @@ class HomePage extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Home Page'),
+        automaticallyImplyLeading: false,
       ),
-      body: const Center(
-        child: Text(
-          'Welcome to the Home Page!',
-          style: TextStyle(fontSize: 24),
+      body: Center(
+        child: Column(
+          children: [
+            const SizedBox(height: 32.0),
+            TextButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const LoginPage()),
+                );
+              },
+              child: const Text('Welcome! Not implemented yet! Go to login..'),
+            ),
+          ],
         ),
       ),
     );

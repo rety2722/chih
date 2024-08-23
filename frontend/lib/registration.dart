@@ -20,7 +20,7 @@ class _RegistrationPageState extends State<RegistrationPage> {
   bool _isPasswordVisible = false;
   bool _isConfirmPasswordVisible = false;
 
-  void _registerUser() async {
+  Future<void> _registerUser() async {
     if (_formKey.currentState?.validate() ?? false) {
       final url = Uri.parse('http://127.0.0.1:8000/api/v1/auth/signup');
       final response = await http.post(
@@ -69,6 +69,7 @@ class _RegistrationPageState extends State<RegistrationPage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Registration'),
+        automaticallyImplyLeading: false,
       ),
       body: SafeArea (
         child: GestureDetector(
@@ -169,11 +170,6 @@ class _RegistrationPageState extends State<RegistrationPage> {
                   const SizedBox(height: 16.0),
                   TextButton(
                     onPressed: () {
-                      // Navigator.push(
-                      //   context,
-                      //   MaterialPageRoute(
-                      //       builder: (context) => const SignInPage()),
-                      // );
                       Navigator.pop(context);
                     },
                     child: const Text('Already have an account? Sign In'),
