@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'storage.dart';
+
 import 'signin.dart';
 import 'home.dart';
 
@@ -13,7 +14,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       initialRoute: '/',
-      title: 'Chih Pikh',
+      title: 'Chih',
       theme: ThemeData(
         primarySwatch: Colors.blue,
       ),

@@ -1,8 +1,8 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
+import 'package:local_auth/local_auth.dart';
 
 import 'home.dart';
 import 'registration.dart';
@@ -18,10 +18,12 @@ class LoginPage extends StatefulWidget {
 class _LoginPageState extends State<LoginPage> {
   final _formKey = GlobalKey<FormState>();
 
+  final LocalAuthentication _auth = LocalAuthentication();
+
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
-
-  final FlutterSecureStorage _storage = const FlutterSecureStorage();
+  final FocusNode _emailFocusNode = FocusNode();
+  final FocusNode _passwordFocusNode = FocusNode();
 
   bool _isPasswordVisible = false;
   bool _rememberMe = false;
@@ -32,10 +34,36 @@ class _LoginPageState extends State<LoginPage> {
     _loadSavedCredentials();
   }
 
+  Future<void> _loginWithBiometrics() async {
+    bool authenticated = false;
+    try {
+      authenticated = await _auth.authenticate(
+        localizedReason: 'Please authenticate to log in',
+        options: const AuthenticationOptions(
+          useErrorDialogs: true,
+          stickyAuth: true,
+        ),
+      );
+
+      if (authenticated) {
+        // Retrieve the stored bearer token and navigate to HomePage
+        String? token = await SecureStorage().read('bearerToken');
+        if (token != null) {
+          await _goToHomePage();
+        } else {
+          _showSnackBar(
+              'No valid token found. Please log in using email and password.');
+        }
+      }
+    } catch (e) {
+      _showSnackBar('Error authenticating: $e');
+    }
+  }
+
   Future<void> _loadSavedCredentials() async {
-    String email = await _storage.read(key: 'email') ?? '';
-    String password = await _storage.read(key: 'password') ?? '';
-    String rememberMeString = await _storage.read(key: 'rememberMe') ?? 'false';
+    String email = await SecureStorage().read('email') ?? '';
+    String password = await SecureStorage().read('password') ?? '';
+    String rememberMeString = await SecureStorage().read('rememberMe') ?? 'false';
     bool rememberMe = (rememberMeString == 'true');
 
     setState(() {
@@ -69,16 +97,23 @@ class _LoginPageState extends State<LoginPage> {
         await SecureStorage().write('tokenExpirationTime',
             _calculateExpirationTime(tokenLifetime).toString());
 
-        if (!mounted) return;
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => const HomePage()),
-        );
+        if (_rememberMe) {
+          await SecureStorage().write('email', _emailController.text);
+          await SecureStorage().write('password', _passwordController.text);
+        }
+
+        await _goToHomePage();
       } else {
         // Handle login error
         _showSnackBar('Login failed!');
       }
     }
+  }
+
+  Future<void> _goToHomePage() async {
+    if (!mounted) return;
+    await Navigator.pushReplacement(
+        context, MaterialPageRoute(builder: (context) => const HomePage()));
   }
 
   void _showSnackBar(String message) {
@@ -117,9 +152,15 @@ class _LoginPageState extends State<LoginPage> {
                 children: [
                   TextFormField(
                     controller: _emailController,
+                    focusNode: _emailFocusNode,
                     decoration: const InputDecoration(
                       labelText: 'Email',
                     ),
+                    keyboardType: TextInputType.emailAddress,
+                    textInputAction: TextInputAction.next,
+                    onFieldSubmitted: (_) {
+                      FocusScope.of(context).requestFocus(_passwordFocusNode);
+                    },
                     validator: (value) {
                       if (value == null || value.isEmpty) {
                         return 'Please enter your email';
@@ -133,6 +174,7 @@ class _LoginPageState extends State<LoginPage> {
                   const SizedBox(height: 16.0),
                   TextFormField(
                     controller: _passwordController,
+                    focusNode: _passwordFocusNode,
                     obscureText: !_isPasswordVisible,
                     decoration: InputDecoration(
                       labelText: 'Password',
@@ -149,6 +191,8 @@ class _LoginPageState extends State<LoginPage> {
                         },
                       ),
                     ),
+                    keyboardType: TextInputType.visiblePassword,
+                    textInputAction: TextInputAction.done,
                     validator: (value) {
                       if (value == null || value.isEmpty) {
                         return 'Please enter your password';
@@ -202,6 +246,18 @@ class _LoginPageState extends State<LoginPage> {
                       );
                     },
                     child: const Text('Don\'t have an account? Register'),
+                  ),
+                  const SizedBox(height: 16.0),
+                  Center(
+                    child: IconButton(
+                      icon: const Icon(
+                        Icons.fingerprint, // Use fingerprint icon
+                        size: 50.0,
+                        color: Colors.blue,
+                      ),
+                      onPressed: _loginWithBiometrics,
+                      tooltip: 'Login with Biometrics',
+                    ),
                   ),
                 ],
               ),
