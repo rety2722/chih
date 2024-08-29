@@ -1,7 +1,12 @@
-import 'package:flutter/material.dart';
+import 'dart:async';
+import 'dart:developer' as developer;
 
-import 'signin.dart';
-import 'storage.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart';
+import 'package:geolocator/geolocator.dart';
+
+import 'account.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -11,28 +16,80 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  String _userName = "Guest";
+  late MapController _mapController;
+  Position? _currentLocation;
+  String _currentCity = "Loading...";
+
+  final TileLayer _tileLayer = TileLayer(
+    urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+  );
 
   @override
   void initState() {
     super.initState();
-    _loadUserName(); 
+    _mapController = MapController();
+    _getCurrentLocation();
   }
 
-  Future<void> _loadUserName() async {
-    String? userName = await SecureStorage().read('email');
-    if (userName != null) {
+  Future<void> _getCurrentLocation() async {
+    LocationPermission permission = await Geolocator.checkPermission();
+
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+      if (permission != LocationPermission.whileInUse &&
+          permission != LocationPermission.always) {
+        developer.debugger(
+          when: false,
+          message:
+              "Location permission denied. Status: ${permission.toString()}",
+        );
+        _showSnackBar(
+            "Permission is ${permission.toString()}. Opening Location Settings");
+
+        Timer(const Duration(seconds: 3), () async {
+          await Geolocator.openLocationSettings();
+        });
+        return;
+      }
+    }
+
+    try {
+      _currentLocation = await Geolocator.getCurrentPosition(
+          desiredAccuracy: LocationAccuracy.high);
+      if (_currentLocation != null) {
+        _mapController.move(
+          LatLng(_currentLocation!.latitude, _currentLocation!.longitude),
+          13.0,
+        );
+        _getCityFromLocation(_currentLocation!);
+      }
+    } catch (e) {
       setState(() {
-        _userName = userName;
+        _currentCity = "Unable to retrieve location";
       });
-      _showWelcomeSnackBar();
     }
   }
 
-  void _showWelcomeSnackBar() {
+  Future<void> _getCityFromLocation(Position currentLocation) async {
+    // TODO Добавить определение города по локации
+    setState(() {
+      _currentCity = "Your City"; // TODO заменить на результат
+    });
+  }
+
+  Future<void> _navigateToAccountPage() async {
+    if (!mounted) return;
+    await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const AccountPage()),
+    );
+  }
+
+  void _showSnackBar(String message) {
     final snackBar = SnackBar(
-      content: Text('Welcome! You\'re logged in with email: $_userName!'), 
-      duration: const Duration(seconds: 3),
+      content: Text(message),
+      duration: const Duration(seconds: 2),
+      behavior: SnackBarBehavior.floating,
     );
     ScaffoldMessenger.of(context).showSnackBar(snackBar);
   }
@@ -40,25 +97,73 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Home Page'),
-        automaticallyImplyLeading: false,
-      ),
-      body: Center(
-        child: Column(
-          children: [
-            const SizedBox(height: 32.0),
-            TextButton(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const LoginPage()),
-                );
-              },
-              child: const Text('Welcome! Not implemented yet! Go to login..'),
+      body: Stack(
+        children: [
+          FlutterMap(
+            mapController: _mapController,
+            options: MapOptions(
+              initialCenter: _currentLocation != null
+                  ? LatLng(
+                      _currentLocation!.latitude, _currentLocation!.longitude)
+                  : const LatLng(
+                      37.7749, -122.4194), // Default center (San Francisco)
+              initialZoom: 13.0,
+              maxZoom: 18.0,
+              minZoom: 3.0,
             ),
-          ],
-        ),
+            children: [
+              _tileLayer,
+            ],
+          ),
+          Positioned(
+            top: 40,
+            left: 16,
+            child: Container(
+              color: Colors.white.withOpacity(0.7),
+              padding: const EdgeInsets.all(8),
+              child: Text(
+                _currentCity,
+                style: const TextStyle(fontSize: 16),
+              ),
+            ),
+          ),
+          Positioned(
+            top: 40,
+            right: 16,
+            child: IconButton(
+              icon: const Icon(Icons.account_circle, size: 30),
+              onPressed: _navigateToAccountPage,
+            ),
+          ),
+          Positioned(
+            bottom: 16,
+            left: 16,
+            right: 16,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                ElevatedButton(
+                  onPressed: () {
+                    // TODO Implement search functionality
+                  },
+                  child: const Text('Search'),
+                ),
+                ElevatedButton(
+                  onPressed: () {
+                    // TODO Implement create event functionality
+                  },
+                  child: const Text('+Event'),
+                ),
+                ElevatedButton(
+                  onPressed: () {
+                    // TODO Implement friends functionality
+                  },
+                  child: const Text('Friends'),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

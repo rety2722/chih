@@ -1,8 +1,12 @@
 import 'dart:convert';
+import 'dart:developer' as developer;
+import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'package:local_auth/local_auth.dart';
+import 'package:local_auth/error_codes.dart' as auth_error;
 
 import 'home.dart';
 import 'registration.dart';
@@ -12,7 +16,7 @@ class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
 
   @override
-  _LoginPageState createState() => _LoginPageState();
+  State<LoginPage> createState() => _LoginPageState();
 }
 
 class _LoginPageState extends State<LoginPage> {
@@ -20,8 +24,9 @@ class _LoginPageState extends State<LoginPage> {
 
   final LocalAuthentication _auth = LocalAuthentication();
 
-  final _emailController = TextEditingController();
-  final _passwordController = TextEditingController();
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
+
   final FocusNode _emailFocusNode = FocusNode();
   final FocusNode _passwordFocusNode = FocusNode();
 
@@ -44,10 +49,12 @@ class _LoginPageState extends State<LoginPage> {
           stickyAuth: true,
         ),
       );
+      developer.log("${_emailController.text} auth is successful");
 
       if (authenticated) {
         // Retrieve the stored bearer token and navigate to HomePage
         String? token = await SecureStorage().read('bearerToken');
+
         if (token != null) {
           await _goToHomePage();
         } else {
@@ -55,57 +62,112 @@ class _LoginPageState extends State<LoginPage> {
               'No valid token found. Please log in using email and password.');
         }
       }
+    } on PlatformException catch (e) {
+      String email = _emailController.text;
+      if (e.code == auth_error.notAvailable) {
+        developer.debugger(
+          when: true,
+          message:
+              "Biometrics is not availible on this device for user: $email",
+        );
+        _showSnackBar("No support for biometrics!");
+      } else if (e.code == auth_error.notEnrolled) {
+        developer.debugger(
+          when: true,
+          message: "Biometrics usage is not permitted for user: $email",
+        );
+        _showSnackBar("Biometrics usage is not permitted");
+      } else {
+        developer.debugger(
+          when: true,
+          message: "unkown Platform error: $e for user: $email",
+        );
+        _showSnackBar('Error authenticating: $e');
+      }
     } catch (e) {
+      developer.debugger(
+        when: true,
+        message: "Error: $e",
+      );
       _showSnackBar('Error authenticating: $e');
     }
   }
 
   Future<void> _loadSavedCredentials() async {
-    String email = await SecureStorage().read('email') ?? '';
-    String password = await SecureStorage().read('password') ?? '';
-    String rememberMeString = await SecureStorage().read('rememberMe') ?? 'false';
-    bool rememberMe = (rememberMeString == 'true');
+    try {
+      String email = await SecureStorage().read('email') ?? '';
+      String password = await SecureStorage().read('password') ?? '';
+      String rememberMeString =
+          await SecureStorage().read('rememberMe') ?? 'false';
+      bool rememberMe = (rememberMeString == 'true');
 
-    setState(() {
-      _emailController.text = email;
-      _passwordController.text = password;
-      _rememberMe = rememberMe;
-    });
+      setState(() {
+        _emailController.text = email;
+        _passwordController.text = password;
+        _rememberMe = rememberMe;
+      });
+    } catch (e) {
+      developer.debugger(
+        when: true,
+        message: "error saving credentials: $e",
+      );
+      _showSnackBar('Could not save credentials: $e');
+    }
   }
 
   Future<void> _loginUser() async {
     if (_formKey.currentState?.validate() ?? false) {
-      final url = Uri.parse('http://127.0.0.1:8000/api/v1/auth/signin');
-      final response = await http.post(
-        url,
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        body: {
-          'username': _emailController.text,
-          'password': _passwordController.text,
-        },
-      );
+      try {
+        final url = Uri.parse('http://127.0.0.1:8000/api/v1/auth/signin');
+        final response = await http.post(
+          url,
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+          },
+          body: {
+            'username': _emailController.text,
+            'password': _passwordController.text,
+          },
+        );
 
-      if (response.statusCode == 200) {
-        // Handle successful login
-        final data = jsonDecode(response.body);
-        String token = data['access_token'];
-        int tokenLifetime = 60 * 60; // hour in seconds
+        if (response.statusCode == 200) {
+          // Handle successful login
+          final data = jsonDecode(response.body);
+          String token = data['access_token'];
+          int tokenLifetime = 60 * 60; // hour in seconds
 
-        await SecureStorage().write('bearerToken', token);
-        await SecureStorage().write('tokenExpirationTime',
-            _calculateExpirationTime(tokenLifetime).toString());
+          await SecureStorage().write('bearerToken', token);
+          await SecureStorage().write('tokenExpirationTime',
+              _calculateExpirationTime(tokenLifetime).toString());
 
-        if (_rememberMe) {
-          await SecureStorage().write('email', _emailController.text);
-          await SecureStorage().write('password', _passwordController.text);
+          if (_rememberMe) {
+            await SecureStorage().write('email', _emailController.text);
+            await SecureStorage().write('password', _passwordController.text);
+          }
+
+          await _goToHomePage();
+        } else {
+          // Handle login error
+          _showSnackBar('Login failed!');
         }
-
-        await _goToHomePage();
-      } else {
-        // Handle login error
-        _showSnackBar('Login failed!');
+      } on HttpException catch (e) {
+        developer.debugger(
+          when: true,
+          message: "Http error: $e",
+        );
+        _showSnackBar("Login failed!");
+      } on PlatformException catch (e) {
+        developer.debugger(
+          when: true,
+          message: "Platform error: $e",
+        );
+        _showSnackBar("Login failed!");
+      } catch (e) {
+        developer.debugger(
+          when: true,
+          message: "Unknown error: $e",
+        );
+        _showSnackBar("Login failed!");
       }
     }
   }
@@ -114,6 +176,14 @@ class _LoginPageState extends State<LoginPage> {
     if (!mounted) return;
     await Navigator.pushReplacement(
         context, MaterialPageRoute(builder: (context) => const HomePage()));
+  }
+
+  Future<void> _goToRegistrationPage() async {
+    if (!mounted) return;
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const RegistrationPage()),
+    );
   }
 
   void _showSnackBar(String message) {
@@ -129,6 +199,16 @@ class _LoginPageState extends State<LoginPage> {
     return DateTime.now()
         .add(Duration(seconds: tokenLifetime))
         .millisecondsSinceEpoch;
+  }
+
+  String? _validateEmail(String? value) {
+    if (value == null || value.isEmpty) {
+      return 'Please enter your email';
+    }
+    if (!value.contains('@')) {
+      return 'Please enter a valid email address';
+    }
+    return null;
   }
 
   @override
@@ -151,26 +231,17 @@ class _LoginPageState extends State<LoginPage> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   TextFormField(
-                    controller: _emailController,
-                    focusNode: _emailFocusNode,
-                    decoration: const InputDecoration(
-                      labelText: 'Email',
-                    ),
-                    keyboardType: TextInputType.emailAddress,
-                    textInputAction: TextInputAction.next,
-                    onFieldSubmitted: (_) {
-                      FocusScope.of(context).requestFocus(_passwordFocusNode);
-                    },
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Please enter your email';
-                      }
-                      if (!value.contains('@')) {
-                        return 'Please enter a valid email address';
-                      }
-                      return null;
-                    },
-                  ),
+                      controller: _emailController,
+                      focusNode: _emailFocusNode,
+                      decoration: const InputDecoration(
+                        labelText: 'Email',
+                      ),
+                      keyboardType: TextInputType.emailAddress,
+                      textInputAction: TextInputAction.next,
+                      onFieldSubmitted: (_) {
+                        FocusScope.of(context).requestFocus(_passwordFocusNode);
+                      },
+                      validator: (value) => _validateEmail(value)),
                   const SizedBox(height: 16.0),
                   TextFormField(
                     controller: _passwordController,
@@ -223,7 +294,6 @@ class _LoginPageState extends State<LoginPage> {
                       ),
                       TextButton(
                         onPressed: () {
-                          // Handle forgot password action
                           _showSnackBar('Forgot Password? (Not implemented)');
                         },
                         child: const Text('Forgot Password?'),
@@ -237,14 +307,7 @@ class _LoginPageState extends State<LoginPage> {
                   ),
                   const SizedBox(height: 16.0),
                   TextButton(
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                            builder: (context) =>
-                                const RegistrationPage()), // Navigate to RegistrationPage
-                      );
-                    },
+                    onPressed: _goToRegistrationPage,
                     child: const Text('Don\'t have an account? Register'),
                   ),
                   const SizedBox(height: 16.0),
