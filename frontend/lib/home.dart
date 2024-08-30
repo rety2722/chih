@@ -104,35 +104,21 @@ class _HomePageState extends State<HomePage> {
       body: Stack(
         children: [
           _backgroundMap(),
-          _currentCityWidget(),
-          _accountPageButton(),
+          Positioned(
+            top: 40,
+            left: 16,
+            child: _currentCityWidget(),
+          ),
+          Positioned(
+            top: 40,
+            right: 16,
+            child: _accountPageButton(),
+          ),
           Positioned(
             bottom: 16,
             left: 16,
             right: 16,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                ElevatedButton(
-                  onPressed: () {
-                    // TODO Implement search functionality
-                  },
-                  child: const Text('Search'),
-                ),
-                ElevatedButton(
-                  onPressed: () {
-                    // TODO Implement create event functionality
-                  },
-                  child: const Text('+Event'),
-                ),
-                ElevatedButton(
-                  onPressed: () {
-                    // TODO Implement friends functionality
-                  },
-                  child: const Text('Friends'),
-                ),
-              ],
-            ),
+            child: _bottomNavigationBar(),
           ),
         ],
       ),
@@ -157,28 +143,46 @@ class _HomePageState extends State<HomePage> {
   }
 
   Widget _currentCityWidget() {
-    return Positioned(
-      top: 40,
-      left: 16,
-      child: Container(
-        color: Colors.white.withOpacity(0.7),
-        padding: const EdgeInsets.all(8),
-        child: Text(
-          _currentCity,
-          style: const TextStyle(fontSize: 16),
-        ),
+    return Container(
+      color: Colors.white.withOpacity(0.7),
+      padding: const EdgeInsets.all(8),
+      child: Text(
+        _currentCity,
+        style: const TextStyle(fontSize: 16),
       ),
     );
   }
 
   Widget _accountPageButton() {
-    return Positioned(
-      top: 40,
-      right: 16,
-      child: IconButton(
-        icon: const Icon(Icons.account_circle, size: 30),
-        onPressed: _navigateToAccountPage,
-      ),
+    return IconButton(
+      icon: const Icon(Icons.account_circle, size: 30),
+      onPressed: _navigateToAccountPage,
+    );
+  }
+
+  Widget _bottomNavigationBar() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        ElevatedButton(
+          onPressed: () {
+            // TODO Implement search functionality
+          },
+          child: const Text('Search'),
+        ),
+        ElevatedButton(
+          onPressed: () {
+            // TODO Implement create event functionality
+          },
+          child: const Text('+Event'),
+        ),
+        ElevatedButton(
+          onPressed: () {
+            // TODO Implement friends functionality
+          },
+          child: const Text('Friends'),
+        ),
+      ],
     );
   }
 }
