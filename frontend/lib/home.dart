@@ -94,47 +94,18 @@ class _HomePageState extends State<HomePage> {
     ScaffoldMessenger.of(context).showSnackBar(snackBar);
   }
 
+  LatLng _getCurrentLatLngLocation() {
+    return LatLng(_currentLocation!.latitude, _currentLocation!.longitude);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: Stack(
         children: [
-          FlutterMap(
-            mapController: _mapController,
-            options: MapOptions(
-              initialCenter: _currentLocation != null
-                  ? LatLng(
-                      _currentLocation!.latitude, _currentLocation!.longitude)
-                  : const LatLng(
-                      37.7749, -122.4194), // Default center (San Francisco)
-              initialZoom: 13.0,
-              maxZoom: 18.0,
-              minZoom: 3.0,
-            ),
-            children: [
-              _tileLayer,
-            ],
-          ),
-          Positioned(
-            top: 40,
-            left: 16,
-            child: Container(
-              color: Colors.white.withOpacity(0.7),
-              padding: const EdgeInsets.all(8),
-              child: Text(
-                _currentCity,
-                style: const TextStyle(fontSize: 16),
-              ),
-            ),
-          ),
-          Positioned(
-            top: 40,
-            right: 16,
-            child: IconButton(
-              icon: const Icon(Icons.account_circle, size: 30),
-              onPressed: _navigateToAccountPage,
-            ),
-          ),
+          _backgroundMap(),
+          _currentCityWidget(),
+          _accountPageButton(),
           Positioned(
             bottom: 16,
             left: 16,
@@ -164,6 +135,49 @@ class _HomePageState extends State<HomePage> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _backgroundMap() {
+    return FlutterMap(
+      mapController: _mapController,
+      options: MapOptions(
+        initialCenter: _currentLocation != null
+            ? _getCurrentLatLngLocation()
+            : const LatLng(37.7749, -122.4194), // San Francisco
+        initialZoom: 13.0,
+        maxZoom: 18.0,
+        minZoom: 3.0,
+      ),
+      children: [
+        _tileLayer,
+      ],
+    );
+  }
+
+  Widget _currentCityWidget() {
+    return Positioned(
+      top: 40,
+      left: 16,
+      child: Container(
+        color: Colors.white.withOpacity(0.7),
+        padding: const EdgeInsets.all(8),
+        child: Text(
+          _currentCity,
+          style: const TextStyle(fontSize: 16),
+        ),
+      ),
+    );
+  }
+
+  Widget _accountPageButton() {
+    return Positioned(
+      top: 40,
+      right: 16,
+      child: IconButton(
+        icon: const Icon(Icons.account_circle, size: 30),
+        onPressed: _navigateToAccountPage,
       ),
     );
   }

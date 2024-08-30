@@ -1,16 +1,15 @@
 import 'dart:convert';
 import 'dart:developer' as developer;
-import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
-import 'package:local_auth/local_auth.dart';
-import 'package:local_auth/error_codes.dart' as auth_error;
 
 import 'home.dart';
 import 'registration.dart';
 import 'storage.dart';
+import 'core/api_routes.dart';
+import 'core/settings.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -21,8 +20,6 @@ class LoginPage extends StatefulWidget {
 
 class _LoginPageState extends State<LoginPage> {
   final _formKey = GlobalKey<FormState>();
-
-  final LocalAuthentication _auth = LocalAuthentication();
 
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
@@ -37,60 +34,6 @@ class _LoginPageState extends State<LoginPage> {
   void initState() {
     super.initState();
     _loadSavedCredentials();
-  }
-
-  Future<void> _loginWithBiometrics() async {
-    bool authenticated = false;
-    try {
-      authenticated = await _auth.authenticate(
-        localizedReason: 'Please authenticate to log in',
-        options: const AuthenticationOptions(
-          useErrorDialogs: true,
-          stickyAuth: true,
-        ),
-      );
-      developer.log("${_emailController.text} auth is successful");
-
-      if (authenticated) {
-        // Retrieve the stored bearer token and navigate to HomePage
-        String? token = await SecureStorage().read('bearerToken');
-
-        if (token != null) {
-          await _goToHomePage();
-        } else {
-          _showSnackBar(
-              'No valid token found. Please log in using email and password.');
-        }
-      }
-    } on PlatformException catch (e) {
-      String email = _emailController.text;
-      if (e.code == auth_error.notAvailable) {
-        developer.debugger(
-          when: true,
-          message:
-              "Biometrics is not availible on this device for user: $email",
-        );
-        _showSnackBar("No support for biometrics!");
-      } else if (e.code == auth_error.notEnrolled) {
-        developer.debugger(
-          when: true,
-          message: "Biometrics usage is not permitted for user: $email",
-        );
-        _showSnackBar("Biometrics usage is not permitted");
-      } else {
-        developer.debugger(
-          when: true,
-          message: "unkown Platform error: $e for user: $email",
-        );
-        _showSnackBar('Error authenticating: $e');
-      }
-    } catch (e) {
-      developer.debugger(
-        when: true,
-        message: "Error: $e",
-      );
-      _showSnackBar('Error authenticating: $e');
-    }
   }
 
   Future<void> _loadSavedCredentials() async {
@@ -108,7 +51,27 @@ class _LoginPageState extends State<LoginPage> {
       });
     } catch (e) {
       developer.debugger(
-        when: true,
+        message: "error loading saved credentials: $e",
+      );
+      _showSnackBar('Could not load saved credentials: $e');
+    }
+  }
+
+  Future<void> _saveCredentials(
+    String token,
+    String tokenLifetime,
+    String email,
+    String password,
+  ) async {
+    try {
+      await SecureStorage().write('bearerToken', token);
+      await SecureStorage().write('tokenExpirationTime', tokenLifetime);
+      if (_rememberMe) {
+        await SecureStorage().write('email', email);
+        await SecureStorage().write('password', password);
+      }
+    } catch (e) {
+      developer.debugger(
         message: "error saving credentials: $e",
       );
       _showSnackBar('Could not save credentials: $e');
@@ -118,53 +81,28 @@ class _LoginPageState extends State<LoginPage> {
   Future<void> _loginUser() async {
     if (_formKey.currentState?.validate() ?? false) {
       try {
-        final url = Uri.parse('http://127.0.0.1:8000/api/v1/auth/signin');
+        final url = _composeSignInUri();
+        final headers = _composeSignInHeaders();
+        final body = _composeSignInBody();
+
         final response = await http.post(
           url,
-          headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-          },
-          body: {
-            'username': _emailController.text,
-            'password': _passwordController.text,
-          },
+          headers: headers,
+          body: body,
         );
 
         if (response.statusCode == 200) {
-          // Handle successful login
-          final data = jsonDecode(response.body);
-          String token = data['access_token'];
-          int tokenLifetime = 60 * 60; // hour in seconds
-
-          await SecureStorage().write('bearerToken', token);
-          await SecureStorage().write('tokenExpirationTime',
-              _calculateExpirationTime(tokenLifetime).toString());
-
-          if (_rememberMe) {
-            await SecureStorage().write('email', _emailController.text);
-            await SecureStorage().write('password', _passwordController.text);
-          }
-
-          await _goToHomePage();
+          _handleSuccessfulSignIn(responseBody: response.body);
         } else {
-          // Handle login error
           _showSnackBar('Login failed!');
         }
-      } on HttpException catch (e) {
-        developer.debugger(
-          when: true,
-          message: "Http error: $e",
-        );
-        _showSnackBar("Login failed!");
       } on PlatformException catch (e) {
         developer.debugger(
-          when: true,
           message: "Platform error: $e",
         );
         _showSnackBar("Login failed!");
       } catch (e) {
         developer.debugger(
-          when: true,
           message: "Unknown error: $e",
         );
         _showSnackBar("Login failed!");
@@ -176,6 +114,7 @@ class _LoginPageState extends State<LoginPage> {
     if (!mounted) return;
     await Navigator.pushReplacement(
         context, MaterialPageRoute(builder: (context) => const HomePage()));
+    _formKey.currentState?.reset();
   }
 
   Future<void> _goToRegistrationPage() async {
@@ -184,6 +123,7 @@ class _LoginPageState extends State<LoginPage> {
       context,
       MaterialPageRoute(builder: (context) => const RegistrationPage()),
     );
+    _formKey.currentState?.reset();
   }
 
   void _showSnackBar(String message) {
@@ -201,12 +141,51 @@ class _LoginPageState extends State<LoginPage> {
         .millisecondsSinceEpoch;
   }
 
+  Uri _composeSignInUri() {
+    return Uri.parse('${Settings.serverAdress}${ApiRoutes.signIn}');
+  }
+
+  Map<String, String> _composeSignInHeaders() {
+    return {
+      'Content-Type': 'application/x-www-form-urlencoded',
+    };
+  }
+
+  Map<String, String> _composeSignInBody() {
+    return {
+      'username': _emailController.text,
+      'password': _passwordController.text,
+    };
+  }
+
+  void _handleSuccessfulSignIn({required String responseBody}) async {
+    final data = jsonDecode(responseBody);
+
+    final String token = data['access_token'];
+    const int tokenLifetimeInt = 60 * 60; // hour in seconds
+    final String tokenLifetime =
+        _calculateExpirationTime(tokenLifetimeInt).toString();
+    final String email = _emailController.text;
+    final String password = _passwordController.text;
+
+    await _saveCredentials(token, tokenLifetime, email, password);
+
+    await _goToHomePage();
+  }
+
   String? _validateEmail(String? value) {
     if (value == null || value.isEmpty) {
       return 'Please enter your email';
     }
     if (!value.contains('@')) {
       return 'Please enter a valid email address';
+    }
+    return null;
+  }
+
+  String? _validatePassword(String? value) {
+    if (value == null || value.isEmpty) {
+      return 'Please enter your password';
     }
     return null;
   }
@@ -230,104 +209,109 @@ class _LoginPageState extends State<LoginPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  TextFormField(
-                      controller: _emailController,
-                      focusNode: _emailFocusNode,
-                      decoration: const InputDecoration(
-                        labelText: 'Email',
-                      ),
-                      keyboardType: TextInputType.emailAddress,
-                      textInputAction: TextInputAction.next,
-                      onFieldSubmitted: (_) {
-                        FocusScope.of(context).requestFocus(_passwordFocusNode);
-                      },
-                      validator: (value) => _validateEmail(value)),
+                  _emailInputField(),
                   const SizedBox(height: 16.0),
-                  TextFormField(
-                    controller: _passwordController,
-                    focusNode: _passwordFocusNode,
-                    obscureText: !_isPasswordVisible,
-                    decoration: InputDecoration(
-                      labelText: 'Password',
-                      suffixIcon: IconButton(
-                        icon: Icon(
-                          _isPasswordVisible
-                              ? Icons.visibility
-                              : Icons.visibility_off,
-                        ),
-                        onPressed: () {
-                          setState(() {
-                            _isPasswordVisible = !_isPasswordVisible;
-                          });
-                        },
-                      ),
-                    ),
-                    keyboardType: TextInputType.visiblePassword,
-                    textInputAction: TextInputAction.done,
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Please enter your password';
-                      }
-                      return null;
-                    },
-                  ),
+                  _passwordInputField(),
                   const SizedBox(height: 16.0),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Row(
-                        children: [
-                          Transform.scale(
-                            scale: 0.8,
-                            child: Switch(
-                              value: _rememberMe,
-                              onChanged: (value) {
-                                setState(() {
-                                  _rememberMe =
-                                      value; // Toggle remember me state
-                                });
-                              },
-                            ),
-                          ),
-                          const Text('Remember Me'),
-                        ],
-                      ),
-                      TextButton(
-                        onPressed: () {
-                          _showSnackBar('Forgot Password? (Not implemented)');
-                        },
-                        child: const Text('Forgot Password?'),
-                      ),
+                      _remmeberMeSlider(),
+                      _forgotPasswordButton(),
                     ],
                   ),
                   const SizedBox(height: 32.0),
-                  ElevatedButton(
-                    onPressed: _loginUser,
-                    child: const Text('Login'),
-                  ),
+                  _loginUserButton(),
                   const SizedBox(height: 16.0),
-                  TextButton(
-                    onPressed: _goToRegistrationPage,
-                    child: const Text('Don\'t have an account? Register'),
-                  ),
-                  const SizedBox(height: 16.0),
-                  Center(
-                    child: IconButton(
-                      icon: const Icon(
-                        Icons.fingerprint, // Use fingerprint icon
-                        size: 50.0,
-                        color: Colors.blue,
-                      ),
-                      onPressed: _loginWithBiometrics,
-                      tooltip: 'Login with Biometrics',
-                    ),
-                  ),
+                  _goToRegistrationPageButton(),
                 ],
               ),
             ),
           ),
         ),
       ),
+    );
+  }
+
+  Widget _emailInputField() {
+    return TextFormField(
+      controller: _emailController,
+      focusNode: _emailFocusNode,
+      decoration: const InputDecoration(
+        labelText: 'Email',
+      ),
+      keyboardType: TextInputType.emailAddress,
+      textInputAction: TextInputAction.next,
+      onFieldSubmitted: (_) {
+        FocusScope.of(context).requestFocus(_passwordFocusNode);
+      },
+      validator: (value) => _validateEmail(value),
+    );
+  }
+
+  Widget _passwordInputField() {
+    return TextFormField(
+      controller: _passwordController,
+      focusNode: _passwordFocusNode,
+      obscureText: !_isPasswordVisible,
+      decoration: InputDecoration(
+        labelText: 'Password',
+        suffixIcon: IconButton(
+          icon: Icon(
+            _isPasswordVisible ? Icons.visibility : Icons.visibility_off,
+          ),
+          onPressed: () {
+            setState(() {
+              _isPasswordVisible = !_isPasswordVisible;
+            });
+          },
+        ),
+      ),
+      keyboardType: TextInputType.visiblePassword,
+      textInputAction: TextInputAction.done,
+      validator: _validatePassword,
+    );
+  }
+
+  Widget _remmeberMeSlider() {
+    return Row(
+      children: [
+        Transform.scale(
+          scale: 0.8,
+          child: Switch(
+            value: _rememberMe,
+            onChanged: (value) {
+              setState(() {
+                _rememberMe = value; // Toggle remember me state
+              });
+            },
+          ),
+        ),
+        const Text('Remember Me'),
+      ],
+    );
+  }
+
+  Widget _forgotPasswordButton() {
+    return TextButton(
+      onPressed: () {
+        _showSnackBar('Forgot Password? (Not implemented)');
+      },
+      child: const Text('Forgot Password?'),
+    );
+  }
+
+  Widget _loginUserButton() {
+    return ElevatedButton(
+      onPressed: _loginUser,
+      child: const Text('Login'),
+    );
+  }
+
+  Widget _goToRegistrationPageButton() {
+    return TextButton(
+      onPressed: _goToRegistrationPage,
+      child: const Text('Don\'t have an account? Register'),
     );
   }
 }

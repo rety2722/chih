@@ -6,6 +6,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 
+import 'core/settings.dart';
+import 'core/api_routes.dart';
+
 class RegistrationPage extends StatefulWidget {
   const RegistrationPage({super.key});
 
@@ -27,49 +30,44 @@ class _RegistrationPageState extends State<RegistrationPage> {
   Future<void> _registerUser() async {
     try {
       if (_formKey.currentState?.validate() ?? false) {
-        final url = Uri.parse('http://127.0.0.1:8000/api/v1/auth/signup');
+        final url = _composeSignUpUri();
+        final headers = _composeSignUpHeaders();
+        final body = _composeSignUpBody();
+
         final response = await http.post(
           url,
-          headers: {'Content-Type': 'application/json'},
-          body: jsonEncode({
-            'email': _emailController.text,
-            'password': _passwordController.text,
-            'full_name': _nameController.text,
-          }),
+          headers: headers,
+          body: body,
         );
 
         if (response.statusCode == 200) {
-          developer.log("${_emailController.text} has registered successfully");
-          await _goToSignIn();
+          _handleSuccessfulRegistration();
         } else {
-          developer.log("${_emailController.text}: registration failed");
-          _showSnackBar('Oops.. Something went Wrong!');
+          _handleUnsuccessfulRegistration();
         }
       }
-    } on HttpException catch (e) {
-        developer.debugger(
-          when: true,
-          message: "Http error: $e",
-        );
-        _showSnackBar("Login failed!");
-      } on PlatformException catch (e) {
-        developer.debugger(
-          when: true,
-          message: "Platform error: $e",
-        );
-        _showSnackBar("Login failed!");
-      } catch (e) {
-        developer.debugger(
-          when: true,
-          message: "Unknown error: $e",
-        );
-        _showSnackBar("Login failed!");
-      }
+    } on HttpException catch (httpError) {
+      developer.debugger(
+        message: "Http error: ${httpError.toString()}",
+      );
+      _showSnackBar("Login failed!");
+    } on PlatformException catch (platformError) {
+      developer.debugger(
+        message: "Platform error: ${platformError.toString()}",
+      );
+      _showSnackBar("Login failed!");
+    } catch (e) {
+      developer.debugger(
+        message: "Unknown error: ${e.toString()}",
+      );
+      _showSnackBar("Login failed!");
+    }
   }
 
-  Future<void> _goToSignIn() async {
+  void _goToSignIn() {
     if (!mounted) return;
     Navigator.pop(context);
+    _formKey.currentState?.reset();
   }
 
   void _showSnackBar(String message) {
@@ -78,6 +76,32 @@ class _RegistrationPageState extends State<RegistrationPage> {
       duration: const Duration(seconds: 3),
     );
     ScaffoldMessenger.of(context).showSnackBar(snackBar);
+  }
+
+  Uri _composeSignUpUri() {
+    return Uri.parse("${Settings.serverAdress}${ApiRoutes.signUp}");
+  }
+
+  Map<String, String> _composeSignUpHeaders() {
+    return {'Content-Type': 'application/json'};
+  }
+
+  String _composeSignUpBody() {
+    return jsonEncode({
+      'email': _emailController.text,
+      'password': _passwordController.text,
+      'full_name': _nameController.text,
+    });
+  }
+
+  void _handleSuccessfulRegistration() {
+    developer.log("${_emailController.text} has registered successfully");
+    _goToSignIn();
+  }
+
+  void _handleUnsuccessfulRegistration() {
+    developer.log("${_emailController.text}: registration failed");
+    _showSnackBar('Oops.. Something went Wrong!');
   }
 
   String? _validatePassword(String? value) {
@@ -124,7 +148,7 @@ class _RegistrationPageState extends State<RegistrationPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Registration'),
+        title: const Text('Chih Registration'),
         automaticallyImplyLeading: false,
       ),
       body: SafeArea(
@@ -139,80 +163,99 @@ class _RegistrationPageState extends State<RegistrationPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  TextFormField(
-                    controller: _nameController,
-                    decoration: const InputDecoration(
-                      labelText: 'Name',
-                    ),
-                    validator: (value) => _validateName(value),
-                  ),
+                  _nameInputField(),
                   const SizedBox(height: 16.0),
-                  TextFormField(
-                    controller: _emailController,
-                    decoration: const InputDecoration(
-                      labelText: 'Email',
-                    ),
-                    validator: (value) => _validateEmail(value),
-                  ),
+                  _emailInputField(),
                   const SizedBox(height: 16.0),
-                  TextFormField(
-                    controller: _passwordController,
-                    obscureText: !_isPasswordVisible,
-                    decoration: InputDecoration(
-                      labelText: 'Password',
-                      suffixIcon: IconButton(
-                        icon: Icon(
-                          _isPasswordVisible
-                              ? Icons.visibility
-                              : Icons.visibility_off,
-                        ),
-                        onPressed: () {
-                          setState(() {
-                            _isPasswordVisible = !_isPasswordVisible;
-                          });
-                        },
-                      ),
-                    ),
-                    validator: (value) => _validatePassword(value),
-                  ),
+                  _passwordInputField(),
                   const SizedBox(height: 16.0),
-                  TextFormField(
-                    controller: _confirmPasswordController,
-                    obscureText: !_isConfirmPasswordVisible,
-                    decoration: InputDecoration(
-                      labelText: 'Confirm Password',
-                      suffixIcon: IconButton(
-                        icon: Icon(
-                          _isConfirmPasswordVisible
-                              ? Icons.visibility
-                              : Icons.visibility_off,
-                        ),
-                        onPressed: () {
-                          setState(() {
-                            _isConfirmPasswordVisible =
-                                !_isConfirmPasswordVisible;
-                          });
-                        },
-                      ),
-                    ),
-                    validator: (value) => _validateConfirmPassword(value),
-                  ),
+                  _repeatPasswrodInputField(),
                   const SizedBox(height: 32.0),
-                  ElevatedButton(
-                    onPressed: _registerUser,
-                    child: const Text('Register'),
-                  ),
+                  _registerButton(),
                   const SizedBox(height: 16.0),
-                  TextButton(
-                    onPressed: _goToSignIn,
-                    child: const Text('Already have an account? Sign In'),
-                  ),
+                  _goToSignInButton(),      
                 ],
               ),
             ),
           ),
         ),
       ),
+    );
+  }
+
+  Widget _nameInputField() {
+    return TextFormField(
+      controller: _nameController,
+      decoration: const InputDecoration(
+        labelText: 'Name',
+      ),
+      validator: (value) => _validateName(value),
+    );
+  }
+
+  Widget _emailInputField() {
+    return TextFormField(
+      controller: _emailController,
+      decoration: const InputDecoration(
+        labelText: 'Email',
+      ),
+      validator: (value) => _validateEmail(value),
+    );
+  }
+
+  Widget _passwordInputField() {
+    return TextFormField(
+      controller: _passwordController,
+      obscureText: !_isPasswordVisible,
+      decoration: InputDecoration(
+        labelText: 'Password',
+        suffixIcon: IconButton(
+          icon: Icon(
+            _isPasswordVisible ? Icons.visibility : Icons.visibility_off,
+          ),
+          onPressed: () {
+            setState(() {
+              _isPasswordVisible = !_isPasswordVisible;
+            });
+          },
+        ),
+      ),
+      validator: (value) => _validatePassword(value),
+    );
+  }
+
+  Widget _repeatPasswrodInputField() {
+    return TextFormField(
+      controller: _confirmPasswordController,
+      obscureText: !_isConfirmPasswordVisible,
+      decoration: InputDecoration(
+        labelText: 'Confirm Password',
+        suffixIcon: IconButton(
+          icon: Icon(
+            _isConfirmPasswordVisible ? Icons.visibility : Icons.visibility_off,
+          ),
+          onPressed: () {
+            setState(() {
+              _isConfirmPasswordVisible = !_isConfirmPasswordVisible;
+            });
+          },
+        ),
+      ),
+      validator: (value) => _validateConfirmPassword(value),
+    );
+  }
+
+  Widget _registerButton() {
+    return ElevatedButton(
+      onPressed: _registerUser,
+      child: const Text('Register'),
+    );
+  }
+
+  Widget _goToSignInButton() {
+    return TextButton(
+      onPressed: _goToSignIn,
+      child: const Text('Already have an account? Sign In'),
     );
   }
 }

@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 
+import 'storage.dart';
+import 'signin.dart';
+
 class AccountPage extends StatefulWidget {
   const AccountPage({super.key});
 
@@ -12,11 +15,28 @@ class _AccountPageState extends State<AccountPage> {
   final String bio = 'This is a short bio about the user. Loves coding and exploring new technologies.';
   final List<String> friends = ['Alice', 'Bob', 'Charlie', 'David', 'Eve'];
 
+  Future<void> _logout() async {
+    await SecureStorage().deleteAll();
+
+    // Navigate back to the SignInPage
+    if (!mounted) return;
+    await Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (context) => const LoginPage()),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Account Page'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.logout),
+            onPressed: _logout,
+          ),
+        ],
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
