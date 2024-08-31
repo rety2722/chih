@@ -7,6 +7,8 @@ import 'package:latlong2/latlong.dart';
 import 'package:geolocator/geolocator.dart';
 
 import 'account.dart';
+import 'friends.dart';
+import 'events.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -98,6 +100,27 @@ class _HomePageState extends State<HomePage> {
     return LatLng(_currentLocation!.latitude, _currentLocation!.longitude);
   }
 
+  void _processSearch() {
+    // TODO()
+    return;
+  }
+
+  Future<void> _processManageEvents() async {
+    if (!mounted) return;
+    await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const EventsPage()),
+    );
+  }
+
+  Future<void> _processManageFriends() async {
+    if (!mounted) return;
+    await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const FriendsPage()),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -164,25 +187,31 @@ class _HomePageState extends State<HomePage> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        ElevatedButton(
-          onPressed: () {
-            // TODO Implement search functionality
-          },
-          child: const Text('Search'),
-        ),
-        ElevatedButton(
-          onPressed: () {
-            // TODO Implement create event functionality
-          },
-          child: const Text('+Event'),
-        ),
-        ElevatedButton(
-          onPressed: () {
-            // TODO Implement friends functionality
-          },
-          child: const Text('Friends'),
-        ),
+        _searchButton(),
+        _eventButton(),
+        _friendsButton(),
       ],
+    );
+  }
+
+  Widget _searchButton() {
+    return ElevatedButton(
+      onPressed: _processSearch,
+      child: const Icon(Icons.search),
+    );
+  }
+
+  Widget _eventButton() {
+    return ElevatedButton(
+      onPressed: _processManageEvents,
+      child: const Icon(Icons.event),
+    );
+  }
+
+  Widget _friendsButton() {
+    return ElevatedButton(
+      onPressed: _processManageFriends,
+      child: const Icon(Icons.person_add),
     );
   }
 }
