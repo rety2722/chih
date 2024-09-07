@@ -28,3 +28,20 @@ class SecureStorage {
     return await _storage.readAll();
   }
 }
+
+class RememberMe {
+  static final RememberMe _instance = RememberMe._internal();
+  factory RememberMe() => _instance;
+
+  RememberMe._internal();
+
+  bool _rememberMe = false;
+
+  void setRememberMe(bool value) {
+    _rememberMe =  value;
+  }
+
+  bool getRememberMeValue() {
+    return _rememberMe;
+  }
+}

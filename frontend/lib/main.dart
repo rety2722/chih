@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'storage.dart';
 
-import 'signin.dart';
-import 'home.dart';
+import 'pages/signin/signin.dart';
+import 'pages/home/home.dart';
 
 void main() => runApp(const MyApp());
 
