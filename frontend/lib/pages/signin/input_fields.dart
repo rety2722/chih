@@ -53,8 +53,9 @@ class _NameInputFieldState extends State<NameInputField> {
         labelText: 'Name',
       ),
       keyboardType: TextInputType.name,
-      textInputAction:
-          widget.nextFocusNode == null ? TextInputAction.done : TextInputAction.next,
+      textInputAction: widget.nextFocusNode == null
+          ? TextInputAction.done
+          : TextInputAction.next,
       onFieldSubmitted: (_) {
         if (widget.nextFocusNode != null) {
           FocusScope.of(context).requestFocus(widget.nextFocusNode);
@@ -71,12 +72,15 @@ class EmailInputField extends StatefulInputField {
     super.nextFocusNode,
   });
 
+  static final emailRegex =
+      RegExp(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$');
+
   @override
   String? validateInput(String? value) {
     if (value == null || value.isEmpty) {
       return 'Please enter your email';
     }
-    if (!value.contains('@')) {
+    if (!emailRegex.hasMatch(value)) {
       return 'Please enter a valid email address';
     }
     return null;
@@ -96,8 +100,9 @@ class _EmailInputFieldState extends State<EmailInputField> {
         labelText: 'Email',
       ),
       keyboardType: TextInputType.emailAddress,
-      textInputAction:
-          widget.nextFocusNode == null ? TextInputAction.done : TextInputAction.next,
+      textInputAction: widget.nextFocusNode == null
+          ? TextInputAction.done
+          : TextInputAction.next,
       onFieldSubmitted: (_) {
         if (widget.nextFocusNode != null) {
           FocusScope.of(context).requestFocus(widget.nextFocusNode);
